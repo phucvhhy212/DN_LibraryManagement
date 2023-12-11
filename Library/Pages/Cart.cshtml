@@ -1,0 +1,161 @@
+﻿@page
+@model Library.Pages.CartModel
+@{
+    double total = 0;
+}
+<style>
+    a:hover {
+        text-decoration: none
+    }
+</style>
+
+<div class="card container-fluid pt-5 px-xl-5 pb-3">
+    <div class="row">
+        <div class="col-md-8 cart">
+            <div class="title">
+                <div class="row">
+                    <div class="col"><h4><b>Shopping Cart</b></h4></div>
+                    <div id="countitemleft" class="col align-self-center text-right text-muted">@Model.Carts.Count items</div>
+                </div>
+            </div>
+            @foreach (var item in Model.Carts)
+            {
+                <div class="row border-top border-bottom">
+                    <div class="row main align-items-center">
+                        <div class="col-2"><img class="img-fluid" src="@item.Book.Image"></div>
+                        <div class="col">
+                            <div class="row text-muted">@item.Book.Title</div>
+                           
+                        </div>
+                        <div class="col">
+                            <a class="btnMinusQuantity" href="#" data-target="@item.CartId">-</a>
+                            <a href="#" class="border px-1 mx-1 quantity">@item.Quantity</a>
+                            <a class="btnAddQuantity" href="#" data-target="@item.CartId">+</a>
+                        </div>
+                        <div class="col">&euro; @item.Book.Price <a asp-page="/Cart" asp-page-handler="DeleteCart" asp-route-cartId="@item.CartId" class="close">&#10005;</a></div>
+                        @{
+                            total += item.Book.Price.Value * item.Quantity;
+                        }
+                    </div>
+                </div>
+
+
+            }
+
+            <div class="back-to-shop"><a href="#">&leftarrow;</a><span class="text-muted">Back to shop</span></div>
+        </div>
+        <div class="col-md-4 summary">
+            <div><h5><b>Summary</b></h5></div>
+            <hr>
+            <div class="row mb-3">
+                <div class="col" id="countitemright"/>ITEMS @Model.Carts.Count</div>
+                <div class="col text-right" id="itemprice">&euro; @total.ToString("F2")</div>
+            </div>
+            <form method="POST">
+                <p>Shipping</p>
+                <select class="w-100 p-2 mb-3" id="select-option" onchange="updateValue()">
+                    <option class="text-muted" value="5">Standard Delivery - &euro;5.00</option>
+                    <option class="text-muted" value="10">High Quality Delivery - &euro;10.00</option>
+                </select>
+                <p>Address</p>
+                <input required class="w-100 p-2 mb-3" asp-for="Address" placeholder="Enter your address">
+                <hr>
+                <div class="row" style="padding: 2vh 0;">
+                    <div class="col fw-bolder">TOTAL PRICE</div>
+                    <div id="total" class="col text-right fw-bolder">&euro;</div>
+                    <input type="hidden" id="totalhidden" asp-for="Total" value="" />
+                </div>
+                <button class="btn btn-primary w-100">CHECKOUT</button>
+            </form>
+
+        </div>
+    </div>
+
+
+<script>
+    let initialValueStr = document.getElementById("total")
+    var x = parseFloat($('#itemprice').text().split(' ')[1])
+
+    let total = document.getElementById("totalhidden")
+    total.value = x.toFixed(2)
+    console.log(total.value)
+    initialValueStr.innerHTML = "&euro; " + (x + parseFloat($("#select-option").val())).toFixed(2)
+
+    function updateValue() {
+        x = parseFloat($('#itemprice').text().split(' ')[1])
+        let selectedValue = parseInt(document.getElementById("select-option").value);
+        total.value = (x - 5 + selectedValue).toFixed(2)
+        console.log(total.value)
+        document.getElementById("total").innerHTML = "&euro; " + (x + selectedValue).toFixed(2);
+    }
+</script>
+<script>
+    $(document).ready(function () {
+        $('.btnAddQuantity').click(function (e) {
+            e.preventDefault();
+            var targetId = $(this).data('target');
+            var quantity = $(this).parent().find('.quantity');
+            $.ajax({
+                type: 'GET',
+                url: '/Cart?handler=AddQuantity&cartId=' + targetId,
+                dataType: 'json',
+                success: function (data) {
+                    quantity.empty();
+                    if (data) {
+                        quantity.append(data.quantity);
+                        var x = parseFloat($('#itemprice').text().split(' ')[1])
+                        x = x + data.book.price
+                        $('#itemprice').text("€ " + x.toFixed(2))
+                        $('#total').text("€ " + (x + parseFloat($("#select-option").val())))
+                        $('#totalhidden').value = x + parseFloat($("#select-option").val())
+                    } else {
+                        $('#dataContainer').text('No data available.');
+                    }
+                },
+                error: function () {
+                    $('#dataContainer').text('Error occurred while loading data.');
+                }
+            });
+        });
+    });
+
+    $(document).ready(function () {
+        $('.btnMinusQuantity').click(function (e) {
+            e.preventDefault();
+            var targetId = $(this).data('target');
+            var quantity = $(this).parent().find('.quantity');
+            $.ajax({
+                type: 'GET',
+                url: '/Cart?handler=MinusQuantity&cartId=' + targetId,
+                dataType: 'json',
+                success: function (data) {
+                    quantity.empty();
+                    if (data) {
+                        if (data.quantity == 0) {
+                            quantity.closest('.row.border-top.border-bottom').remove();
+                            $('#cartcounting').text($('#cartcounting').text()-1);
+                            $('#countitemleft').text($('#countitemleft').text()[0]-1 +" items")
+                            var countitemrighttext = $('#countitemright').text().split(' ');
+                            var update = countitemrighttext[1] - 1
+                            $('#countitemright').text("ITEMS " + update);
+
+                        }
+                        else {
+                        quantity.append(data.quantity);
+                        }
+                        var x = parseFloat($('#itemprice').text().split(' ')[1])
+                        x = x - data.book.price
+                        $('#itemprice').text("€ " + x.toFixed(2))
+                        $('#total').text("€ " + (x + parseFloat($("#select-option").val())))
+                        $('#totalhidden').value = x + parseFloat($("#select-option").val())
+                    } else {
+                        $('#dataContainer').text('No data available.');
+                    }
+                },
+                error: function () {
+                    $('#dataContainer').text('Error occurred while loading data.');
+                }
+            });
+        });
+    });
+</script>

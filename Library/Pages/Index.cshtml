@@ -1,0 +1,62 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+<div class="container-fluid pt-5">
+    <h2 class="section-title position-relative text-uppercase mx-xl-5 mb-4"><span class="bg-secondary pr-3">Categories</span></h2>
+    <div class="row px-xl-5 pb-3">
+        
+        @foreach (var item in Model.Categories)
+        {
+            <div class="col-lg-3 col-md-4 col-sm-6 pb-1">
+                <a class="text-decoration-none" asp-page="/Book/Search" asp-route-cid="@item.CategoryId">
+                    <div class="cat-item d-flex align-items-center mb-4">
+                        <div class="overflow-hidden" style="width: 100px; height: 100px;">
+                            <img class="img-fluid h-100" src="@item.Image" alt="">
+                        </div>
+                        <div class="flex-fill pl-3">
+                            <h6>@item.CategoryName</h6>
+                            <small class="text-body">@item.Books.Where(x=>x.Status.Value).ToList().Count books</small>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+        }
+    </div>
+</div>
+<!-- Products Start -->
+<div class="container-fluid pt-5 pb-3">
+    <h2 class="section-title position-relative text-uppercase mx-xl-5 mb-4"><span class="bg-secondary pr-3">Featured Products</span></h2>
+    <div class="row px-xl-5">
+        @foreach(var item in Model.Book){
+                <div class="col-lg-3 col-md-4 col-sm-6 pb-1">
+                    <div class="product-item bg-light mb-4">
+                        <div class="product-img position-relative overflow-hidden">
+                            <a asp-page="/Book/Detail" asp-route-id="@item.BookId"><img class="img-fluid w-100" src="@item.Image" alt=""></a>
+
+                        </div>
+                        <div class="text-center py-4">
+                        <a class="h6 text-decoration-none text-truncate" asp-page="/Book/Detail" asp-route-id="@item.BookId">@item.Title</a>
+                            <div class="d-flex align-items-center justify-content-center mt-2">
+                                <h5>By @item.Author.Fullname</h5>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-center mt-2">
+                                @for(int i = 1 ; i <= item.Rate ; i++) {
+                                
+                                    <small class="fa fa-star text-primary mr-1"></small>
+                            }
+                            </div>
+                            <div class="d-flex align-items-center justify-content-center mt-2">
+                                <small>@item.Quantity left</small>
+                            </div>
+                        </div>
+
+
+                    </div>
+                </div>
+        }
+    </div>
+</div>
+<!-- Products End -->

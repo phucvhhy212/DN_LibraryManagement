@@ -1,0 +1,164 @@
+﻿@page
+
+@model Library.Pages.Book.SearchModel
+@{
+    var idValue = ViewData["idValue"];
+    var pages = (int)ViewData["pages"];
+    var search = ViewData["search"];
+    var countPage = (double)ViewData["countPage"] ;
+}
+
+<!-- Breadcrumb Start -->
+<div class="container-fluid">
+    <div class="row px-xl-5">
+        <div class="col-12">
+            <nav class="breadcrumb bg-light mb-30">
+                <a class="breadcrumb-item text-dark" href="#">Home</a>
+                <a class="breadcrumb-item text-dark" href="#">Books</a>
+                <span class="breadcrumb-item active">Books List</span>
+            </nav>
+        </div>
+    </div>
+</div>
+<!-- Breadcrumb End -->
+<!-- Shop Start -->
+<div class="container-fluid">
+    <div class="row px-xl-5">
+        <!-- Shop Sidebar Start -->
+        <div class="col-lg-3 col-md-4">
+            <!-- Price Start -->
+            <h5 class="section-title position-relative text-uppercase mb-3"><span class="bg-secondary pr-3">Filter by Category</span></h5>
+            <div class="bg-light p-4 mb-30">
+                <form id='f1' action="/Book/Search" method="GET">
+                    <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between mb-3">
+                        <input type="checkbox" class="custom-control-input" name="cid" id="book-all">
+                        <label class="custom-control-label" for="book-all">All Books</label>
+
+                    </div>
+
+                    @foreach (var item in Model.Categories)
+                    {
+
+                        <div class="custom-control custom-checkbox d-flex align-items-center justify-content-between">
+                            <input type="checkbox" class="custom-control-input" id="book-@item.CategoryId" name="cid" value="@item.CategoryId">
+                            <label class="custom-control-label" for="book-@item.CategoryId">@item.CategoryName</label>
+                        </div>
+                    }
+
+                    <input type="submit" class="btn btn-block btn-primary font-weight-bold my-3 py-3" value="Filter">
+                </form>
+            </div>
+            <!-- Price End -->
+
+        </div>
+        <!-- Shop Sidebar End -->
+        <!-- Shop Product Start -->
+        <div class="col-lg-9 col-md-8">
+            <div class="row pb-3">
+
+
+                @foreach (var item in Model.Books)
+                {
+                    <div class="col-lg-4 col-md-6 col-sm-6 pb-1">
+                        <div class="product-item bg-light mb-4">
+                            <div class="product-img position-relative overflow-hidden">
+                                <img class="img-fluid w-100" src="@item.Image" alt="">
+                                <div class="product-action">
+                                    <a class="btn btn-outline-dark btn-square" href="appointmentListCart?action=addToCart&bookId=${bookAuthor.book.id}"><i class="fa fa-shopping-cart"></i></a>
+                                    <a class="btn btn-outline-dark btn-square" href="myReservation?action=addToReservationList&bookId=${bookAuthor.book.id}"><i class="far fa-heart"></i></a>
+                                    <a class="btn btn-outline-dark btn-square" href=""><i class="fa fa-sync-alt"></i></a>
+                                    <a class="btn btn-outline-dark btn-square" href=""><i class="fa fa-search"></i></a>
+                                </div>
+                            </div>
+                            <div class="text-center py-4">
+                                <a class="h6 text-decoration-none text-truncate" asp-page="Detail" asp-route-id="@item.BookId">@item.Title</a>
+                                <div class="d-flex align-items-center justify-content-center mt-2">
+                                    <h5>@item.Author.Fullname</h5>
+                                </div>
+                                <div class="d-flex align-items-center justify-content-center mb-1">
+                                    @for (int i = 1; i <= item.Rate; i++)
+                                    {
+                                        <small class="fa fa-star text-primary mr-1"></small>
+                                    }
+                                </div>
+                                <div class="d-flex align-items-center justify-content-center mt-2">
+                                    <small>@item.Quantity left</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                <div class="col-12">
+                    <nav>
+
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item previous"><a class="page-link" asp-page="/Book/Search" asp-route-pages="@(pages-1)" asp-route-cid="@idValue" asp-route-name="@search">Previous</a></li>
+                            @for (int i = 1; i <= @countPage; i++)
+                            {
+                                <li class="page-item number"><a class="page-link" asp-page="/Book/Search" asp-route-pages="@i" asp-route-cid="@idValue" asp-route-name="@search">@i</a></li>
+                            }
+                            <li class="page-item next"><a class="page-link" asp-page="/Book/Search" asp-route-pages="@(pages+1)" asp-route-cid="@idValue" asp-route-name="@search">Next</a></li>
+
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+        <!-- Shop Product End -->
+    </div>
+</div>
+<!-- Shop End -->
+
+<script>
+    var id = '@idValue'
+    if (id == '') {
+        document.querySelector('#book-all').checked = true;
+    }
+    else {
+        document.querySelector('#book-all').checked = false;
+        var selectedId = "#book-" + id;
+        document.querySelector(selectedId).checked = true;
+    }
+    
+    var pageIndex = '@pages'
+    if(pageIndex == 1 || pageIndex == '') {
+        document.querySelector('.page-item.previous').classList.add('disabled')
+    }
+    else if(pageIndex >= @countPage){
+        document.querySelector('.page-item.next').classList.add('disabled')
+    }
+    else{
+        document.querySelector('.page-item.number').classList.add('active')
+    }
+
+</script>
+
+<!--Script Handle Sidebar-->
+<script>
+    function myFunction(obj) {
+        var checkBox = document.getElementsByName("cid");
+        console.log(1);
+        if ((obj.id == 'book-all') && (checkBox[0].checked == true)) {
+            for (var i = 1; i < checkBox.length; i++) {
+                checkBox[i].checked = false;
+            }
+        } else {
+            for (var i = 1; i < checkBox.length; i++) {
+                if (checkBox[i].checked == true)
+                    checkBox[0].checked = false;
+            }
+        }
+
+        for (var i = 0; i < checkBox.length; i++) {
+            if (checkBox[i].checked == true) {
+                for (var z = 0; z < checkBox.length; z++) {
+                    checkBox[z].checked = false;
+                }
+                checkBox[i].checked = true
+                break;
+            }
+        }
+    }
+</script>
+<!--End Script Handle Sidebar
+-->

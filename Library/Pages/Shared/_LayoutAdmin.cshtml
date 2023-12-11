@@ -1,0 +1,88 @@
+﻿<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>@ViewBag.Title</title>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+
+
+    <link rel="stylesheet" href="~/css/bootstrap.css" />
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/bold.css">
+    <link rel="stylesheet" href="~/css/app.css">
+    <link rel="stylesheet" href="~/css/style_table.css">
+
+    <link rel="stylesheet" href="~/css/bootstrap-icons.css">
+    <script src="/js/simple-datatables.js"></script>
+    <script src="/js/perfect-scrollbar.min.js"></script>
+    <script src="/js/mainManager.js"></script>
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.js"></script>
+    <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js"></script>
+
+
+</head>
+<body>
+<div id="app" class="bg-light">
+    <div id="sidebar" class="active">
+        <div class="sidebar-wrapper active">
+            <div class="sidebar-header">
+                <div class="d-flex justify-content-between">
+                    <div class="logo">
+                            <a asp-page="/Index" class="text-decoration-none">Home</a>
+                    </div>
+                    <div class="toggler">
+                        <a href="#" class="sidebar-hide d-xl-none d-block"><i class="bi bi-x bi-middle"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="sidebar-menu">
+                <ul class="menu">
+                    <li class="sidebar-title">Menu</li>
+
+                    <li class="sidebar-item">
+                        <a href="dashboard" class='sidebar-link'>
+                            <i class="bi bi-grid-fill"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a asp-page="/Admin/OrderManagement" class='sidebar-link'>
+                            <i class="bi bi-grid-fill"></i>
+                            <span>Order Management</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                            <a asp-page="/Admin/AccountManagement" class='sidebar-link'>
+                            <i class="bi bi-grid-fill"></i>
+                            <span>Account Management</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a asp-page="/Admin/BookManagement" class='sidebar-link'>
+                            <i class="bi bi-book"></i>
+                            <span>Book Management</span>
+                        </a>
+
+                    </li><li class="sidebar-item">
+                        <a asp-page="/Admin/CategoryManagement" class='sidebar-link'>
+                            <i class="bi bi-book"></i>
+                            <span>Category Management</span>
+                        </a>
+
+                    </li>
+
+                </ul>
+
+
+
+            </div>
+            <button class="sidebar-toggler btn x"><i data-feather="x"></i></button>
+        </div>
+    </div>
+    @RenderBody()
+</div>
+
+</body>
+</html>
