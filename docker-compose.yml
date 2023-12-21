@@ -1,0 +1,29 @@
+version: '3'
+services:
+  librayclient:
+    image: libraryclient
+    pull_policy: if_not_present
+    container_name: libraryclient
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      ASPNETCORE_URLS: "http://+:5000"
+    ports:
+      - 5000:5000
+    depends_on:
+      libraryAPI: 
+        condition: service_started
+    command: "dotnet Library.dll"
+
+  
+  libraryAPI:
+    image: libraryapi
+    pull_policy: if_not_present
+    container_name: libraryAPI
+    ports:
+      - 5098:5098
+    environment:
+      ASPNETCORE_URLS: "http://+:5098"
+    command: "dotnet LibraryAPI.dll"
+    restart: unless-stopped
+ 
+    
