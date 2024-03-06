@@ -48,14 +48,19 @@
             <div><h5><b>Summary</b></h5></div>
             <hr>
             <div class="row mb-3">
-                <div class="col" id="countitemright"/>ITEMS @Model.Carts.Count</div>
+                <div class="col" id="countitemright">ITEMS @Model.Carts.Count</div>
                 <div class="col text-right" id="itemprice">&euro; @total.ToString("F2")</div>
             </div>
             <form method="POST">
-                <p>Shipping</p>
+                <p>Shipping Option</p>
                 <select class="w-100 p-2 mb-3" id="select-option" onchange="updateValue()">
                     <option class="text-muted" value="5">Standard Delivery - &euro;5.00</option>
                     <option class="text-muted" value="10">High Quality Delivery - &euro;10.00</option>
+                </select>
+                <p>Payment Method</p>
+                <select class="w-100 p-2 mb-3" id="select-option" name="payment">
+                    <option class="text-muted" value="COD">Cash on delivery</option>
+                    <option class="text-muted" value="VNPAY">VNPAY-QR payment portal</option>
                 </select>
                 <p>Address</p>
                 <input required class="w-100 p-2 mb-3" asp-for="Address" placeholder="Enter your address">

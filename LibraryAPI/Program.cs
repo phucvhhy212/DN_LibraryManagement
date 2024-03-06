@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json.Serialization;
 using LibraryAPI.Profile;
+using LibraryAPI.Services;
 using LibraryCore.Models;
 using LibraryCore.UnitOfWork;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -20,6 +21,7 @@ namespace LibraryAPI
             var builder = WebApplication.CreateBuilder(args);
             builder.Services.AddTransient<IUnitOfWork, UnitOfWork>();
             builder.Services.AddAutoMapper(typeof(MapperProfile));
+            builder.Services.AddCors();
             // Add services to the container.
             builder.Services.AddAuthentication(
                 options =>
@@ -49,7 +51,7 @@ namespace LibraryAPI
             });
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
-
+            builder.Services.AddTransient<IVnPayService, VnPayService>();
             builder.Services.AddSwaggerGen(option =>
             {
                 option.SwaggerDoc("v1", new OpenApiInfo { Title = "Project API", Version = "v1" });
@@ -90,7 +92,7 @@ namespace LibraryAPI
             app.UseAuthentication();
 
             app.UseAuthorization();
-
+            app.UseCors(o => o.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
 
             app.MapControllers();
 

@@ -1,25 +1,27 @@
 ﻿using LibraryCore.Models;
-using LibraryCore.UnitOfWork;
+using LibraryCore.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Newtonsoft.Json.Linq;
-using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
-using LibraryCore.ViewModels;
-using static NuGet.Packaging.PackagingConstants;
+using System.Web;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
+
 
 namespace Library.Pages
 {
     public class CartModel : PageModel
     {
         private readonly HttpClient client;
+        private IServiceScopeFactory _serviceScopeFactory;
 
-        public CartModel()
+        public CartModel(IServiceScopeFactory serviceScopeFactory)
         {
             client = new HttpClient();
             var contentType = new MediaTypeWithQualityHeaderValue("application/json");
             client.DefaultRequestHeaders.Accept.Add(contentType);
+            _serviceScopeFactory = serviceScopeFactory;
         }
         [BindProperty]
         public ICollection<Cart> Carts { get; set; } = new List<Cart>();
@@ -100,9 +102,9 @@ namespace Library.Pages
 
             var responseCart =
                 await client.GetAsync(
-                    "http://localhost:5098/odata/Cart?"+"$filter=BookId eq "+bookId+" and UserId eq " + HttpContext.Session.GetInt32("userid").Value);
+                    "http://localhost:5098/odata/Cart?" + "$filter=BookId eq " + bookId + " and UserId eq " + HttpContext.Session.GetInt32("userid").Value);
             string dataCart = await responseCart.Content.ReadAsStringAsync();
-            
+
             JObject jsonObject = JObject.Parse(dataCart);
             JToken values = (JToken)jsonObject["value"];
             Cart? cart;
@@ -137,9 +139,9 @@ namespace Library.Pages
                 var responseCartCount = await client.GetAsync($"http://localhost:5098/odata/Cart?$filter=UserId eq {HttpContext.Session.GetInt32("userid").Value}&$count=true");
                 string dataCartCount = await responseCartCount.Content.ReadAsStringAsync();
                 JObject jObject = JObject.Parse(dataCartCount);
-                var x=jObject["@odata.count"];
-                HttpContext.Session.SetInt32("cartcount",(int)x);
-                
+                var x = jObject["@odata.count"];
+                HttpContext.Session.SetInt32("cartcount", (int)x);
+
             }
             return RedirectToPage("Index");
 
@@ -150,7 +152,7 @@ namespace Library.Pages
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", HttpContext.Session.GetString("token"));
 
             var responseCart = await client.GetAsync($"http://localhost:5098/odata/Cart?$filter=CartId eq {cartId}&$expand=Book");
-            
+
             string dataCart = await responseCart.Content.ReadAsStringAsync();
             JObject jsonObject = JObject.Parse(dataCart);
             JToken values = (JToken)jsonObject["value"];
@@ -164,7 +166,7 @@ namespace Library.Pages
                     Quantity = (int)values[0]["Quantity"],
                     BookId = (int)values[0]["BookId"],
                     UserId = (int)values[0]["UserId"],
-                    
+
                 };
 
             if (cart != null)
@@ -211,7 +213,7 @@ namespace Library.Pages
                     Quantity = (int)values[0]["Quantity"],
                     BookId = (int)values[0]["BookId"],
                     UserId = (int)values[0]["UserId"],
-                    
+
                 };
 
             if (cart != null)
@@ -271,10 +273,74 @@ namespace Library.Pages
 
             return Page();
         }
-        public async Task<IActionResult> OnPost()
+
+        public async Task<IActionResult> OnGetVnPayReturn()
         {
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", HttpContext.Session.GetString("token"));
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+            var builder = new UriBuilder("http://localhost:5098/api/Payment");
+            var query = HttpUtility.ParseQueryString(builder.Query);
+            foreach (var (key,item) in Request.Query)
+            {
+                query[key] = item;
+            }
+            builder.Query = query.ToString();
+            var responseVnPay = await client.GetAsync(builder.ToString());
+            string dataResponse = await responseVnPay.Content.ReadAsStringAsync();
 
+            VnPaymentResponseModel o = JsonSerializer.Deserialize<VnPaymentResponseModel>(dataResponse, options);
+            TempData["vnPayResponse"] = JsonSerializer.Serialize(o);
+            if (responseVnPay.IsSuccessStatusCode)
+            {
+                Address = TempData["address"] as string;
+                Total = o.Amount;
+                await ClearCartAndCreateOrder();
+            }
+            
+            return RedirectToPage("PaymentStatus");
+        }
+
+
+        public async Task<IActionResult> OnPost(string? payment)
+        {
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", HttpContext.Session.GetString("token"));
+            // if customer choose to checkout using VNPAY
+            if (payment == "VNPAY")
+            {
+                TempData["address"] = Address;
+
+                var model = new VnPaymentRequestModel()
+                {
+                    Amount = Total,
+                    Description = $"VNPAY checkout for user {HttpContext.Session.GetInt32("username").Value}",
+                    FullName = "HPV",
+                    PaymentId = HttpContext.Session.GetInt32("userid").Value + DateTime.Now.Ticks.ToString(),
+                };
+                var responseVnPay = await client.PostAsJsonAsync("http://localhost:5098/api/Payment", model);
+                if (responseVnPay.IsSuccessStatusCode)
+                {
+                    string dataBook = await responseVnPay.Content.ReadAsStringAsync();
+                    JObject jObject = JObject.Parse(dataBook);
+
+                    return Redirect((string)jObject["redirectUrl"]);
+                }
+                return RedirectToPage("Index");
+
+            }
+            else
+            {
+                ClearCartAndCreateOrder();
+
+                return RedirectToPage("Index");
+            }
+        }
+
+        private async Task ClearCartAndCreateOrder()
+        {
+            // else
             var responseCart =
                 await client.GetAsync(
                     $"http://localhost:5098/odata/Cart?$filter=UserId eq {HttpContext.Session.GetInt32("userid").Value}&$expand=Book($expand=Category)");
@@ -309,10 +375,11 @@ namespace Library.Pages
                     }
                 };
 
-                // Thêm Cart vào collection
+                // Add cart's items into collection
                 Carts.Add(cart);
             }
 
+            // Create a new Order
             AddOrderViewModel order = new AddOrderViewModel
             {
                 UserId = HttpContext.Session.GetInt32("userid").Value,
@@ -323,7 +390,8 @@ namespace Library.Pages
             };
             var responseAddOrder = await client.PostAsJsonAsync(
                 $"http://localhost:5098/api/Order", order);
-            if(responseAddOrder.IsSuccessStatusCode){
+            if (responseAddOrder.IsSuccessStatusCode)
+            {
                 string dataUser = await responseAddOrder.Content.ReadAsStringAsync();
                 var options = new JsonSerializerOptions
                 {
@@ -332,26 +400,27 @@ namespace Library.Pages
                 var o = JsonSerializer.Deserialize<Order>(dataUser, options);
                 foreach (var item in Carts)
                 {
-                    var responseAddOrderDetail = await client.PostAsJsonAsync($"http://localhost:5098/odata/OrderDetail", new AddOrderDetailViewModel
-                    {
-                        OrderId = o.OrderId,
-                        BookId = item.BookId,
-                        Quantity = item.Quantity
-                    });
+                    var responseAddOrderDetail = await client.PostAsJsonAsync(
+                        $"http://localhost:5098/odata/OrderDetail", new AddOrderDetailViewModel
+                        {
+                            OrderId = o.OrderId,
+                            BookId = item.BookId,
+                            Quantity = item.Quantity
+                        });
 
-                    var responseClearCart = await client.DeleteAsync($"http://localhost:5098/odata/Cart/{item.CartId}");
+                    var responseClearCart =
+                        await client.DeleteAsync($"http://localhost:5098/odata/Cart/{item.CartId}");
                 }
-                //_unitOfWork.CartRepository.DeleteAllByUserId(HttpContext.Session.GetInt32("userid").Value);
-                //HttpContext.Session.SetInt32("cartcount", 0);
-                //_unitOfWork.SaveChange();
-                var responseCartCount = await client.GetAsync($"http://localhost:5098/odata/Cart?$filter=UserId eq {HttpContext.Session.GetInt32("userid").Value}&$count=true");
+
+
+                var responseCartCount = await client.GetAsync(
+                    $"http://localhost:5098/odata/Cart?$filter=UserId eq {HttpContext.Session.GetInt32("userid").Value}&$count=true");
                 string dataCartCount = await responseCartCount.Content.ReadAsStringAsync();
                 JObject jObject = JObject.Parse(dataCartCount);
                 var x = jObject["@odata.count"];
                 HttpContext.Session.SetInt32("cartcount", (int)x);
 
             }
-            return RedirectToPage("Index");
         }
     }
 }
